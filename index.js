@@ -13,9 +13,9 @@ const connectDB = require('./src/config/db')
 
 
 connectDB(process.env.MONGO_URI).then(()=>{
-  app.listen(PORT, () =>{
-    console.log(`Server is running on http://localhost:${PORT}`)
-  })
+ app.listen(3005, "0.0.0.0", () => {
+  console.log("Server is running on http://0.0.0.0:3005");
+});
 })
 
 
