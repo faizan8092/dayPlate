@@ -1,7 +1,7 @@
 const express = require('express');
 require('dotenv').config()
 const app = require("./src/app"); // Assuming you are importing an Express app from another file
-const PORT = 3005;
+const PORT = process.env.PORT || 3005;
 const connectDB = require('./src/config/db')
 
 
@@ -13,10 +13,10 @@ const connectDB = require('./src/config/db')
 
 
 connectDB(process.env.MONGO_URI).then(()=>{
- app.listen(3005, "0.0.0.0", () => {
-  console.log("Server is running on http://0.0.0.0:3005");
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
-})
+
 
 
 // app.get('/', (req, res) =>{
