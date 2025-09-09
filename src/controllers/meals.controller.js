@@ -47,72 +47,78 @@ const getDailyLog = async (req, res, next) => {
 
 // Add meal to today's log
 const addMeal = async (req, res, next) => {
-    try {
-        const userId = req.user._id;
-        const { name, time, calories, protein, carbs, fat, water } = req.body;
+  try {
+    const userId = req.user._id;
+    const body = req.body; // could be single object OR array
 
-        const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0];
 
-        // Find today's log
-        let dailyLog = await DailyLog.findOne({ user: userId, date: today });
+    // Find today's log
+    let dailyLog = await DailyLog.findOne({ user: userId, date: today });
 
-        if (!dailyLog) {
-            // Fetch user's goal if daily log doesn't exist
-            const goal = await Goal.findOne({ userId });
+    if (!dailyLog) {
+      // Fetch user's goal if daily log doesn't exist
+      const goal = await Goal.findOne({ userId });
 
-            if (!goal) {
-                return res.status(404).json({ message: "Goal not found for this user" });
-            }
+      if (!goal) {
+        return res.status(404).json({ message: "Goal not found for this user" });
+      }
 
-            dailyLog = new DailyLog({
-                user: userId,
-                date: today,
-                caloriesGoal: goal.caloriesGoal,
-                proteinGoal: goal.proteinGoalG,
-                carbsGoal: goal.carbsGoalG,
-                fatGoal: goal.fatGoal,
-                waterGoalMl: goal.waterGoalMl,
-                meals: [],
-                totalCalories: 0,
-                totalProtein: 0,
-                totalCarbs: 0,
-                totalFat: 0,
-                totalWater: 0
-            });
-        }
-
-        // Get current time in HH:MM AM/PM format
-        const now = new Date();
-        const hours = now.getHours();
-        const minutes = now.getMinutes();
-        const formattedTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
-
-
-        // Add the meal
-        dailyLog.meals.unshift({
-            name,
-            time: time || formattedTime,
-            calories,
-            protein,
-            carbs,
-            fat,
-            water
-        });
-
-        // Update totals
-        dailyLog.totalCalories += calories;
-        dailyLog.totalProtein += protein;
-        dailyLog.totalCarbs += carbs;
-        dailyLog.totalFat += fat;
-        dailyLog.totalWater += water || 0;
-
-
-        await dailyLog.save();
-
-        res.status(200).json(dailyLog);
-    } catch (error) {
-        next(error);
+      dailyLog = new DailyLog({
+        user: userId,
+        date: today,
+        caloriesGoal: goal.caloriesGoal,
+        proteinGoal: goal.proteinGoalG,
+        carbsGoal: goal.carbsGoalG,
+        fatGoal: goal.fatGoal,
+        waterGoalMl: goal.waterGoalMl,
+        meals: [],
+        totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFat: 0,
+        totalWater: 0
+      });
     }
+
+    // Get current time in HH:MM AM/PM format
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const formattedTime = `${hours % 12 || 12}:${minutes
+      .toString()
+      .padStart(2, "0")} ${hours >= 12 ? "PM" : "AM"}`;
+
+    // Normalize body into array
+    const meals = Array.isArray(body) ? body : [body];
+
+    // Loop through meals
+    meals.forEach(({ name, time, calories, protein, carbs, fat, water }) => {
+      dailyLog.meals.unshift({
+        name,
+        time: time || formattedTime,
+        calories,
+        protein,
+        carbs,
+        fat,
+        water
+      });
+
+      // Update totals
+      dailyLog.totalCalories += calories;
+      dailyLog.totalProtein += protein;
+      dailyLog.totalCarbs += carbs;
+      dailyLog.totalFat += fat;
+      dailyLog.totalWater += water || 0;
+    });
+
+    await dailyLog.save();
+
+    res.status(200).json(dailyLog);
+  } catch (error) {
+    next(error);
+  }
 };
+
 
 module.exports = { getDailyLog, addMeal };
