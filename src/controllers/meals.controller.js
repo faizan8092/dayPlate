@@ -61,40 +61,50 @@ const addMeal = async (req, res, next) => {
         // Get timezone from request header or default to UTC
         const userTimezone = req.headers['x-timezone'] || 'UTC';
         
-        const today = new Date().toISOString().split("T");
-
+        // ✅ FIXED: Get only the first element [0] from the split array
+        const today = new Date().toISOString().split("T")[0];
+        
         // Check if req.body is an array or single object
         const mealsToAdd = Array.isArray(req.body) ? req.body : [req.body];
 
-    // Find today's log
-    let dailyLog = await DailyLog.findOne({ user: userId, date: today });
+        // Find today's log
+        let dailyLog = await DailyLog.findOne({ user: userId, date: today });
 
-    if (!dailyLog) {
-      // Fetch user's goal if daily log doesn't exist
-      const goal = await Goal.findOne({ userId });
+        if (!dailyLog) {
+            // Fetch user's goal if daily log doesn't exist
+            let goal = await Goal.findOne({ userId });
 
-      if (!goal) {
-        return res.status(404).json({ message: "Goal not found for this user" });
-      }
+            if (!goal) {
+                // Create default goals if none exist
+                goal = await Goal.create({
+                    userId: userId,
+                    caloriesGoal: 2000,
+                    proteinGoalG: 150,
+                    carbsGoalG: 225,
+                    fatGoal: 78,
+                    waterGoalMl: 2000,
+                    effectiveAt: Date.now()
+                });
+            }
 
-      dailyLog = new DailyLog({
-        user: userId,
-        date: today,
-        caloriesGoal: goal.caloriesGoal,
-        proteinGoal: goal.proteinGoalG,
-        carbsGoal: goal.carbsGoalG,
-        fatGoal: goal.fatGoal,
-        waterGoalMl: goal.waterGoalMl,
-        meals: [],
-        totalCalories: 0,
-        totalProtein: 0,
-        totalCarbs: 0,
-        totalFat: 0,
-        totalWater: 0
-      });
-    }
+            dailyLog = new DailyLog({
+                user: userId,
+                date: today, // This will now be a string "2025-09-13"
+                caloriesGoal: goal.caloriesGoal,
+                proteinGoal: goal.proteinGoalG,
+                carbsGoal: goal.carbsGoalG,
+                fatGoal: goal.fatGoal,
+                waterGoalMl: goal.waterGoalMl,
+                meals: [],
+                totalCalories: 0,
+                totalProtein: 0,
+                totalCarbs: 0,
+                totalFat: 0,
+                totalWater: 0
+            });
+        }
 
-        // Generate current time in user's timezone
+        // Rest of your code remains the same...
         const now = new Date();
         const defaultTime = now.toLocaleString('en-US', {
             timeZone: 'Asia/Kolkata',
@@ -103,18 +113,15 @@ const addMeal = async (req, res, next) => {
             hour12: true
         });
 
-        // Initialize totals for this operation
         let totalCaloriesAdded = 0;
         let totalProteinAdded = 0;
         let totalCarbsAdded = 0;
         let totalFatAdded = 0;
         let totalWaterAdded = 0;
 
-        // Process each meal in the array
         mealsToAdd.forEach(meal => {
             const { name, time, calories, protein, carbs, fat, water } = meal;
             
-            // Add each meal to the beginning of meals array
             dailyLog.meals.unshift({
                 name,
                 time: time || defaultTime,
@@ -125,7 +132,6 @@ const addMeal = async (req, res, next) => {
                 water: water || 0
             });
 
-            // Accumulate totals
             totalCaloriesAdded += calories || 0;
             totalProteinAdded += protein || 0;
             totalCarbsAdded += carbs || 0;
@@ -133,20 +139,24 @@ const addMeal = async (req, res, next) => {
             totalWaterAdded += water || 0;
         });
 
-        // Update daily log totals
         dailyLog.totalCalories += totalCaloriesAdded;
         dailyLog.totalProtein += totalProteinAdded;
         dailyLog.totalCarbs += totalCarbsAdded;
         dailyLog.totalFat += totalFatAdded;
         dailyLog.totalWater += totalWaterAdded;
 
-    await dailyLog.save();
+        await dailyLog.save();
 
-    res.status(200).json(dailyLog);
-  } catch (error) {
-    next(error);
-  }
+        res.status(200).json(dailyLog);
+    } catch (error) {
+        next(error);
+    }
 };
+
+
+
+
+
 
 
 

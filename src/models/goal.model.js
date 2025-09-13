@@ -25,7 +25,7 @@ const goalSchema = new mongoose.Schema({
   },
   fatGoal: {
     type: Number,
-    require: true,
+    required: true,
     default: 100
   },
   waterGoalMl: {  // Rename this field
