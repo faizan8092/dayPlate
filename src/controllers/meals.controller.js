@@ -6,6 +6,7 @@ const User = require("../models/user.model");
 const getDailyLog = async (req, res, next) => {
     try {
         const userId = req.user._id;
+        // Fix: Add  to get string, not array
         const date = req.query.date || new Date().toISOString().split("T");
 
         // Always fetch the current goal
@@ -15,8 +16,9 @@ const getDailyLog = async (req, res, next) => {
             return res.status(404).json({ message: "Goal not found for this user" });
         }
 
-        // Find existing daily log
-        let dailyLog = await DailyLog.findOne({ user: userId, date });
+        // Find existing daily log and populate user field
+        let dailyLog = await DailyLog.findOne({ user: userId, date })
+            .populate('user', 'fullname email'); // Populate user with fullname and email
 
         if (!dailyLog) {
             // Create new daily log with current goal values
@@ -36,6 +38,10 @@ const getDailyLog = async (req, res, next) => {
                 totalWater: 0
             });
             await dailyLog.save();
+            
+            // Populate the user field after saving
+            dailyLog = await DailyLog.findById(dailyLog._id)
+                .populate('user', 'fullname email');
         } else {
             // Update existing daily log with current goal values
             dailyLog.caloriesGoal = goal.caloriesGoal;
@@ -51,6 +57,7 @@ const getDailyLog = async (req, res, next) => {
         next(error);
     }
 };
+
 
 
 // Add meal to today's log
