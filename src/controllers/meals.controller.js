@@ -66,33 +66,33 @@ const addMeal = async (req, res, next) => {
         // Check if req.body is an array or single object
         const mealsToAdd = Array.isArray(req.body) ? req.body : [req.body];
 
-        // Find today's log
-        let dailyLog = await DailyLog.findOne({ user: userId, date: today });
+    // Find today's log
+    let dailyLog = await DailyLog.findOne({ user: userId, date: today });
 
-        if (!dailyLog) {
-            // Fetch user's goal if daily log doesn't exist
-            const goal = await Goal.findOne({ userId });
+    if (!dailyLog) {
+      // Fetch user's goal if daily log doesn't exist
+      const goal = await Goal.findOne({ userId });
 
-            if (!goal) {
-                return res.status(404).json({ message: "Goal not found for this user" });
-            }
+      if (!goal) {
+        return res.status(404).json({ message: "Goal not found for this user" });
+      }
 
-            dailyLog = new DailyLog({
-                user: userId,
-                date: today,
-                caloriesGoal: goal.caloriesGoal,
-                proteinGoal: goal.proteinGoalG,
-                carbsGoal: goal.carbsGoalG,
-                fatGoal: goal.fatGoal,
-                waterGoalMl: goal.waterGoalMl,
-                meals: [],
-                totalCalories: 0,
-                totalProtein: 0,
-                totalCarbs: 0,
-                totalFat: 0,
-                totalWater: 0
-            });
-        }
+      dailyLog = new DailyLog({
+        user: userId,
+        date: today,
+        caloriesGoal: goal.caloriesGoal,
+        proteinGoal: goal.proteinGoalG,
+        carbsGoal: goal.carbsGoalG,
+        fatGoal: goal.fatGoal,
+        waterGoalMl: goal.waterGoalMl,
+        meals: [],
+        totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFat: 0,
+        totalWater: 0
+      });
+    }
 
         // Generate current time in user's timezone
         const now = new Date();
@@ -140,12 +140,12 @@ const addMeal = async (req, res, next) => {
         dailyLog.totalFat += totalFatAdded;
         dailyLog.totalWater += totalWaterAdded;
 
-        await dailyLog.save();
+    await dailyLog.save();
 
-        res.status(200).json(dailyLog);
-    } catch (error) {
-        next(error);
-    }
+    res.status(200).json(dailyLog);
+  } catch (error) {
+    next(error);
+  }
 };
 
 
