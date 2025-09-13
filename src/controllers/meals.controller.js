@@ -57,9 +57,14 @@ const getDailyLog = async (req, res, next) => {
 const addMeal = async (req, res, next) => {
     try {
         const userId = req.user._id;
-        const { name, time, calories, protein, carbs, fat, water } = req.body;
+        
+        // Get timezone from request header or default to UTC
+        const userTimezone = req.headers['x-timezone'] || 'UTC';
+        
+        const today = new Date().toISOString().split("T");
 
-        const today = new Date().toISOString().split("T")[0];
+        // Check if req.body is an array or single object
+        const mealsToAdd = Array.isArray(req.body) ? req.body : [req.body];
 
         // Find today's log
         let dailyLog = await DailyLog.findOne({ user: userId, date: today });
@@ -89,31 +94,51 @@ const addMeal = async (req, res, next) => {
             });
         }
 
-        // Get current time in HH:MM AM/PM format
+        // Generate current time in user's timezone
         const now = new Date();
-        const hours = now.getHours();
-        const minutes = now.getMinutes();
-        const formattedTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
-
-
-        // Add the meal
-        dailyLog.meals.unshift({
-            name,
-            time: time || formattedTime,
-            calories,
-            protein,
-            carbs,
-            fat,
-            water
+        const defaultTime = now.toLocaleString('en-US', {
+            timeZone: 'Asia/Kolkata',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
         });
 
-        // Update totals
-        dailyLog.totalCalories += calories;
-        dailyLog.totalProtein += protein;
-        dailyLog.totalCarbs += carbs;
-        dailyLog.totalFat += fat;
-        dailyLog.totalWater += water || 0;
+        // Initialize totals for this operation
+        let totalCaloriesAdded = 0;
+        let totalProteinAdded = 0;
+        let totalCarbsAdded = 0;
+        let totalFatAdded = 0;
+        let totalWaterAdded = 0;
 
+        // Process each meal in the array
+        mealsToAdd.forEach(meal => {
+            const { name, time, calories, protein, carbs, fat, water } = meal;
+            
+            // Add each meal to the beginning of meals array
+            dailyLog.meals.unshift({
+                name,
+                time: time || defaultTime,
+                calories: calories || 0,
+                protein: protein || 0,
+                carbs: carbs || 0,
+                fat: fat || 0,
+                water: water || 0
+            });
+
+            // Accumulate totals
+            totalCaloriesAdded += calories || 0;
+            totalProteinAdded += protein || 0;
+            totalCarbsAdded += carbs || 0;
+            totalFatAdded += fat || 0;
+            totalWaterAdded += water || 0;
+        });
+
+        // Update daily log totals
+        dailyLog.totalCalories += totalCaloriesAdded;
+        dailyLog.totalProtein += totalProteinAdded;
+        dailyLog.totalCarbs += totalCarbsAdded;
+        dailyLog.totalFat += totalFatAdded;
+        dailyLog.totalWater += totalWaterAdded;
 
         await dailyLog.save();
 
@@ -122,5 +147,7 @@ const addMeal = async (req, res, next) => {
         next(error);
     }
 };
+
+
 
 module.exports = { getDailyLog, addMeal };
