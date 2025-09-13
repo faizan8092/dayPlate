@@ -6,20 +6,20 @@ const User = require("../models/user.model");
 const getDailyLog = async (req, res, next) => {
     try {
         const userId = req.user._id;
-        const date = req.query.date || new Date().toISOString().split("T")[0];
+        const date = req.query.date || new Date().toISOString().split("T");
+
+        // Always fetch the current goal
+        const goal = await Goal.findOne({ userId });
+        
+        if (!goal) {
+            return res.status(404).json({ message: "Goal not found for this user" });
+        }
 
         // Find existing daily log
         let dailyLog = await DailyLog.findOne({ user: userId, date });
 
         if (!dailyLog) {
-            // Fetch user's goal
-            const goal = await Goal.findOne({ userId });
-
-            if (!goal) {
-                return res.status(404).json({ message: "Goal not found for this user" });
-            }
-
-            // Create a new daily log using goal
+            // Create new daily log with current goal values
             dailyLog = new DailyLog({
                 user: userId,
                 date,
@@ -35,7 +35,14 @@ const getDailyLog = async (req, res, next) => {
                 totalFat: 0,
                 totalWater: 0
             });
-
+            await dailyLog.save();
+        } else {
+            // Update existing daily log with current goal values
+            dailyLog.caloriesGoal = goal.caloriesGoal;
+            dailyLog.proteinGoal = goal.proteinGoalG;
+            dailyLog.carbsGoal = goal.carbsGoalG;
+            dailyLog.fatGoal = goal.fatGoal;
+            dailyLog.waterGoalMl = goal.waterGoalMl;
             await dailyLog.save();
         }
 
@@ -44,6 +51,7 @@ const getDailyLog = async (req, res, next) => {
         next(error);
     }
 };
+
 
 // Add meal to today's log
 const addMeal = async (req, res, next) => {
